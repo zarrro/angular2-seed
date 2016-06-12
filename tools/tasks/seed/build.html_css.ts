@@ -11,7 +11,6 @@ import {
   BROWSER_LIST,
   CSS_DEST,
   CSS_PROD_BUNDLE,
-  CSS_SRC,
   DEPENDENCIES,
   ENABLE_SCSS,
   ENV,
@@ -19,7 +18,6 @@ import {
 } from '../../config';
 
 const plugins = <any>gulpLoadPlugins();
-const cleanCss = require('gulp-clean-css');
 
 const processors = [
   autoprefixer({
@@ -49,27 +47,6 @@ function prepareTemplates() {
 }
 
 /**
- * Execute the appropriate component-stylesheet processing method based on user stylesheet preference.
- */
-function processComponentStylesheets() {
-  return ENABLE_SCSS ? processComponentScss() : processComponentCss();
-}
-
-/**
- * Process scss files referenced from Angular component `styleUrls` metadata
- */
-function processComponentScss() {
-  return gulp.src(join(APP_SRC, '**', '*.scss'))
-    .pipe(isProd ? plugins.cached('process-component-scss') : plugins.util.noop())
-    .pipe(isProd ? plugins.progeny() : plugins.util.noop())
-    .pipe(plugins.sourcemaps.init())
-    .pipe(plugins.sass({includePaths: ['./node_modules/']}).on('error', plugins.sass.logError))
-    .pipe(plugins.postcss(processors))
-    .pipe(plugins.sourcemaps.write(isProd ? '.' : ''))
-    .pipe(gulp.dest(isProd ? TMP_DIR : APP_DEST));
-}
-
-/**
  * Processes the CSS files within `src/client` excluding those in `src/client/assets` using `postcss` with the
  * configured processors.
  */
@@ -95,10 +72,9 @@ function processExternalStylesheets() {
  * the global project configuration.
  */
 function processAllExternalStylesheets() {
-  return merge(getExternalCssStream(), getExternalScssStream())
+  return merge(getExternalCssStream())
     .pipe(isProd ? plugins.concatCss(CSS_PROD_BUNDLE) : plugins.util.noop())
     .pipe(plugins.postcss(processors))
-    .pipe(isProd ? cleanCss() : plugins.util.noop())
     .pipe(gulp.dest(CSS_DEST));
 }
 
@@ -118,36 +94,16 @@ function getExternalCss() {
 }
 
 /**
- * Get a stream of external scss files for subsequent processing.
- */
-function getExternalScssStream() {
-  return gulp.src(getExternalScss())
-    .pipe(isProd ? plugins.cached('process-external-scss') : plugins.util.noop())
-    .pipe(isProd ? plugins.progeny() : plugins.util.noop())
-    .pipe(plugins.sass({includePaths: ['./node_modules/']}).on('error', plugins.sass.logError));
-}
-
-/**
- * Get an array of filenames referring to external scss stylesheets located in the global DEPENDENCIES
- * as well as in `src/css`.
- */
-function getExternalScss() {
-  return DEPENDENCIES.filter(dep => /\.scss$/.test(dep.src)).map(dep => dep.src)
-    .concat([join(CSS_SRC, '**', '*.scss')]);
-}
-
-/**
  * Processes the external CSS files using `postcss` with the configured processors.
  */
 function processExternalCss() {
   return getExternalCssStream()
     .pipe(plugins.postcss(processors))
     .pipe(isProd ? plugins.concatCss(CSS_PROD_BUNDLE) : plugins.util.noop())
-    .pipe(isProd ? cleanCss() : plugins.util.noop())
     .pipe(gulp.dest(CSS_DEST));
 }
 
 /**
  * Executes the build process, processing the HTML and CSS files.
  */
-export = () => merge(processComponentStylesheets(), prepareTemplates(), processExternalStylesheets());
+export = () => merge(processComponentCss(), prepareTemplates(), processExternalStylesheets());

@@ -35,6 +35,6 @@ function bundleShims() {
     }))
     .pipe(plugins.concat(JS_PROD_SHIMS_BUNDLE))
     // Strip the first (global) 'use strict' added by reflect-metadata, but don't strip any others to avoid unintended scope leaks.
-    .pipe(plugins.replace(/('|")use strict\1;var Reflect;/, 'var Reflect;'))
+    // .pipe(plugins.replace(/('|")use strict\1;var Reflect;/, 'var Reflect;'))
     .pipe(gulp.dest(JS_DEST));
 }
